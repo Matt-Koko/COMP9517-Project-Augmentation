@@ -25,6 +25,7 @@ Small resnet transformations
 """
 
 smallresnet_pre_resize = A.Compose([
+        A.HorizontalFlip(),
         A.ColorJitter(brightness=0.5, contrast=0.2, saturation=0.05, hue=0.05, always_apply=True),
         A.FancyPCA(always_apply=True)
     ], bbox_params=A.BboxParams(format='coco', label_fields=['category_ids']))
@@ -33,6 +34,22 @@ smallresnet_post_resize = A.Compose([
         A.HorizontalFlip(),
         A.ColorJitter(brightness=0.5, contrast=0.2, saturation=0.05, hue=0.05, always_apply=True),
         A.FancyPCA(always_apply=True)
+    ], bbox_params=A.BboxParams(format='coco', label_fields=['category_ids']))
+
+augmented_ds_1 = A.Compose([
+        A.HorizontalFlip(),
+        A.RandomSunFlare(p=0.05),
+        A.RandomRain(p=0.05),
+        A.ColorJitter(brightness=0.5, contrast=0.2, saturation=0.05, hue=0.05, always_apply=True),
+        A.FancyPCA(always_apply=True),
+        A.GaussNoise(p=0.1)
+    ], bbox_params=A.BboxParams(format='coco', label_fields=['category_ids']))
+
+augmented_ds_2 = A.Compose([
+        A.BBoxSafeRandomCrop(p=0.5),
+        A.Perspective(p=0.2),
+        A.HorizontalFlip(),
+        A.PadIfNeeded(min_height=640, min_width=640, border_mode=0, value=[255, 255, 255], always_apply=True)
     ], bbox_params=A.BboxParams(format='coco', label_fields=['category_ids']))
 
 """

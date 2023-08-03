@@ -14,7 +14,7 @@ import matplotlib.patches as patches
 from torch.utils.data import Dataset
 import torchvision.transforms.functional as tvF
 
-from augmentations import CutNPaint, smallresnet_pre_resize, show
+from augmentations import augmented_ds_1, augmented_ds_2, CutNPaint, show
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -29,10 +29,10 @@ class AugmentationDataset(Dataset):
         self.width = data_frame['w']
         self.height = data_frame['h']
         self.area = data_frame['area']
-        self.augmentation_previews = 5
+        self.augmentation_previews = 0
 
     def __len__(self):
-        return len(self.image_paths)
+        return len(self.image_names)
 
     def get_orig_size(self,idx):
         return Image.open(self.image_paths[idx]).size
@@ -40,7 +40,7 @@ class AugmentationDataset(Dataset):
     def get_bbox(self, idx):
         return [self.x_min[idx], self.y_min[idx], self.width[idx], self.height[idx]]
         
-    def __getitem__(self, idx):
+    def __getitem__(self, idx): 
         image = Image.open(os.path.join(self.original_path, self.image_names[idx]))
         image = image.convert('RGB')
         image = np.asarray(image)
@@ -96,9 +96,13 @@ class AugmentationDataset(Dataset):
             if self.augmentation_previews > 0:
                 self.augmentation_previews -= 1
                 show(image, bbox_new, "Test")
-                # Convert back to Image
-                PIL_image = Image.fromarray(image)
-                PIL_image.save(os.path.join(image_save_path, self.image_names[idx]))
+            
+            # Convert back to Image and save
+            PIL_image = Image.fromarray(image)
+            PIL_image.save(os.path.join(image_save_path, self.image_names[idx]))
+
+            if idx == len(self) - 1:
+                break
 
         # Export the annotations
         with open(annotation_path, "w") as file:
@@ -116,7 +120,8 @@ train[['x','y','w','h']] = train['bbox'].apply(pd.Series)
 
 # Generate a static offline dataset
 ds = AugmentationDataset(train, original_train_path)
-ds.export_static_dataset(".\\Augmented Datasets\\augmented_ds_1\\", smallresnet_pre_resize)
+#print(len(ds))
+ds.export_static_dataset(".\\Augmented Datasets\\augmented_ds_2\\", augmented_ds_2)
 
 def preview_generative_inpainting(num_previews):
     """
