@@ -24,13 +24,10 @@ from Inpainter.utils.tools import normalize
 Small resnet transformations
 """
 
-smallresnet_pre_resize = None
-"""
-A.Compose([
+smallresnet_pre_resize = A.Compose([
         A.ColorJitter(brightness=0.5, contrast=0.2, saturation=0.05, hue=0.05, always_apply=True),
         A.FancyPCA(always_apply=True)
     ], bbox_params=A.BboxParams(format='coco', label_fields=['category_ids']))
-"""
 
 smallresnet_post_resize = A.Compose([
         A.HorizontalFlip(),
@@ -58,12 +55,12 @@ def CutNPaint(image, bbox, label, preview_mode=False):
     
     # Show the original image
     if preview_mode:
-        show(image, bbox, "Original")
-    fig, axs = plt.subplots(1, 3)
-    axs[0].set_title("Original")
-    axs[0].imshow(image)
-    bboxPatch = patches.Rectangle((bbox[0], bbox[1]), bbox[2], bbox[3], linewidth=1, edgecolor='r', facecolor='none')
-    axs[0].add_patch(bboxPatch)
+        #show(image, bbox, "Original")
+        fig, axs = plt.subplots(1, 3)
+        axs[0].set_title("Original")
+        axs[0].imshow(image)
+        bboxPatch = patches.Rectangle((bbox[0], bbox[1]), bbox[2], bbox[3], linewidth=1, edgecolor='r', facecolor='none')
+        axs[0].add_patch(bboxPatch)
 
     image_height, image_width, _ = image.shape
 
@@ -81,13 +78,13 @@ def CutNPaint(image, bbox, label, preview_mode=False):
     subject_bbox = list(subject_augmented_data['bboxes'][0])
     # Show the removed images
     if preview_mode:
-        image[bbox[1]:bbox[1] + bbox[3], bbox[0]:bbox[0] + bbox[2], :] = 0   # Just for show
-        show(image, None, "Subject Masked")
-    
-    axs[1].set_title("Subject Masked")
-    image2 = np.copy(image)
-    image2[bbox[1]:bbox[1] + bbox[3], bbox[0]:bbox[0] + bbox[2], :] = 0
-    axs[1].imshow(image2)
+        #image[bbox[1]:bbox[1] + bbox[3], bbox[0]:bbox[0] + bbox[2], :] = 0   # Just for show
+        #show(image, None, "Subject Masked")
+        
+        axs[1].set_title("Subject Masked")
+        image2 = np.copy(image)
+        image2[bbox[1]:bbox[1] + bbox[3], bbox[0]:bbox[0] + bbox[2], :] = 0
+        axs[1].imshow(image2)
 
     # Perform geometric transformations on the cut out penguin or turtle and paste it in
     paste_bbox = np.zeros(4, dtype=int)
@@ -122,13 +119,13 @@ def CutNPaint(image, bbox, label, preview_mode=False):
     inpainted_image[paste_bbox[1]:paste_bbox[1] + paste_bbox[3], paste_bbox[0]:paste_bbox[0] + paste_bbox[2], :] = subject_image
     # Show the removed images
     if preview_mode:
-        show(inpainted_image, paste_bbox, "Augmented Image")
-    axs[2].set_title("Inpainted Image with Modified Subject")
-    axs[2].imshow(inpainted_image)
-    bboxPatch = patches.Rectangle((paste_bbox[0], paste_bbox[1]), paste_bbox[2], paste_bbox[3], linewidth=1, edgecolor='r', facecolor='none')
-    axs[2].add_patch(bboxPatch)
-    plt.tight_layout()
-    plt.show()
+        #show(inpainted_image, paste_bbox, "Augmented Image")
+        axs[2].set_title("Inpainted Image with Modified Subject")
+        axs[2].imshow(inpainted_image)
+        bboxPatch = patches.Rectangle((paste_bbox[0], paste_bbox[1]), paste_bbox[2], paste_bbox[3], linewidth=1, edgecolor='r', facecolor='none')
+        axs[2].add_patch(bboxPatch)
+        plt.tight_layout()
+        plt.show()
 
     return inpainted_image, paste_bbox
 
