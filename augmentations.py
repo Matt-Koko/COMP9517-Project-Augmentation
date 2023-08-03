@@ -72,7 +72,6 @@ def CutNPaint(image, bbox, label, preview_mode=False):
     
     # Show the original image
     if preview_mode:
-        #show(image, bbox, "Original")
         fig, axs = plt.subplots(1, 3)
         axs[0].set_title("Original")
         axs[0].imshow(image)
@@ -86,18 +85,16 @@ def CutNPaint(image, bbox, label, preview_mode=False):
     zoom_augment = A.Compose([
         A.Crop(x_min=bbox[0], y_min=bbox[1], x_max=bbox[0] + bbox[2], y_max=bbox[1] + bbox[3]),
         A.HorizontalFlip(),
-        A.RandomScale(scale_limit=[-0.9, 0], always_apply=True)
+        A.RandomScale(scale_limit=[-0.75, 0], always_apply=True)
     ], bbox_params=A.BboxParams(format='coco', label_fields=['category_ids']))
 
     # Perform the above transformation to get the penguin
     subject_augmented_data = zoom_augment(image=image, bboxes=[bbox], category_ids=[label]) # Albumentations
     subject_image = subject_augmented_data['image']
-    subject_bbox = list(subject_augmented_data['bboxes'][0])
+    # subject_bbox = list(subject_augmented_data['bboxes'][0])
+    
     # Show the removed images
-    if preview_mode:
-        #image[bbox[1]:bbox[1] + bbox[3], bbox[0]:bbox[0] + bbox[2], :] = 0   # Just for show
-        #show(image, None, "Subject Masked")
-        
+    if preview_mode:      
         axs[1].set_title("Subject Masked")
         image2 = np.copy(image)
         image2[bbox[1]:bbox[1] + bbox[3], bbox[0]:bbox[0] + bbox[2], :] = 0
@@ -116,7 +113,7 @@ def CutNPaint(image, bbox, label, preview_mode=False):
         paste_bbox[1] = random.randint(paste_y_min, paste_y_max)
 
     # Paste the cropped image in at a new random horizontal location
-    #image[paste_bbox[1]:paste_bbox[1] + paste_bbox[3], paste_bbox[0]:paste_bbox[0] + paste_bbox[2], :] = subject_image
+    image[paste_bbox[1]:paste_bbox[1] + paste_bbox[3], paste_bbox[0]:paste_bbox[0] + paste_bbox[2], :] = subject_image
 
     # Create a 2D mask of the space requiring infill
     mask = np.zeros(image.shape, dtype=np.uint8)
@@ -128,15 +125,12 @@ def CutNPaint(image, bbox, label, preview_mode=False):
     x_max = min(image_width, bbox[0] + bbox[2] + mask_padding)
     y_max = min(image_height, bbox[1] + bbox[3] + mask_padding)
     mask[y_min:y_max, x_min:x_max, :] = 255  # Set the inpainting mask to fill in where the subject was
-
-    #mask[paste_bbox[1]:paste_bbox[1] + paste_bbox[3], paste_bbox[0]:paste_bbox[0] + paste_bbox[2], :] = 0
-
-    
+    mask[paste_bbox[1]:paste_bbox[1] + paste_bbox[3], paste_bbox[0]:paste_bbox[0] + paste_bbox[2], :] = 0
+  
     inpainted_image = inpaint(image, mask)
-    inpainted_image[paste_bbox[1]:paste_bbox[1] + paste_bbox[3], paste_bbox[0]:paste_bbox[0] + paste_bbox[2], :] = subject_image
+    
     # Show the removed images
     if preview_mode:
-        #show(inpainted_image, paste_bbox, "Augmented Image")
         axs[2].set_title("Inpainted Image with Modified Subject")
         axs[2].imshow(inpainted_image)
         bboxPatch = patches.Rectangle((paste_bbox[0], paste_bbox[1]), paste_bbox[2], paste_bbox[3], linewidth=1, edgecolor='r', facecolor='none')

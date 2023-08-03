@@ -76,6 +76,9 @@ class AugmentationDataset(Dataset):
             image = augmented_image_data['image']        
             bbox_new = list(augmented_image_data['bboxes'][0])
 
+            # CutNPaint
+            #image, bbox_new = CutNPaint(image, bbox, label)
+
 
             # append new annotations to list
             bbox_aug = [int(item) for item in bbox_new]
@@ -120,8 +123,9 @@ train[['x','y','w','h']] = train['bbox'].apply(pd.Series)
 
 # Generate a static offline dataset
 ds = AugmentationDataset(train, original_train_path)
-#print(len(ds))
+#ds.export_static_dataset(".\\Augmented Datasets\\augmented_ds_1\\", augmented_ds_1)
 ds.export_static_dataset(".\\Augmented Datasets\\augmented_ds_2\\", augmented_ds_2)
+#ds.export_static_dataset(".\\Augmented Datasets\\augmented_ds_3\\", None)
 
 def preview_generative_inpainting(num_previews):
     """
