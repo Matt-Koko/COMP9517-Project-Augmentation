@@ -14,23 +14,21 @@ import matplotlib.patches as patches
 from torch.utils.data import Dataset
 import torchvision.transforms.functional as tvF
 
-from augmentations import CutNPaint
+from augmentations import CutNPaint, smallresnet_pre_resize, show
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class AugmentationDataset(Dataset):
-    def __init__(self, data_frame, image_size=(120,120), pre_transform=None, post_transform=None):
+    def __init__(self, data_frame, original_train_path):
+        self.original_path = original_train_path
+        self.image_names = data_frame['image_filenames']
         self.id = data_frame['id']
-        self.image_paths = data_frame['image_id'].values
         self.labels = data_frame['category_id'].values
         self.x_min = data_frame['x']
         self.y_min = data_frame['y']
         self.width = data_frame['w']
         self.height = data_frame['h']
         self.area = data_frame['area']
-        self.image_size = image_size
-        self.pre_resize_augment_transform = pre_transform
-        self.post_resize_augment_transform = post_transform
         self.augmentation_previews = 5
 
     def __len__(self):
@@ -43,7 +41,7 @@ class AugmentationDataset(Dataset):
         return [self.x_min[idx], self.y_min[idx], self.width[idx], self.height[idx]]
         
     def __getitem__(self, idx):
-        image = Image.open(self.image_paths[idx])
+        image = Image.open(os.path.join(self.original_path, self.image_names[idx]))
         image = image.convert('RGB')
         image = np.asarray(image)
 
@@ -56,18 +54,17 @@ class AugmentationDataset(Dataset):
         '''
         Randomly show examples of CutNPaint
         '''
-        # Only for 3 random images
         for i in range(num_previews):
             idx = random.randint(0, len(self) - 1)
 
             image, bbox, label = self[idx]
             CutNPaint(image, bbox, label, preview_mode=True)
 
-    def export_static_dataset(self, parent_directory, augmentation):
+    def export_static_dataset(self, parent_directory, augmentation_transform):
 
         # Set the export paths
-        annotation_path = os.joint(parent_directory, 'train_annotations')
-        annotation_path = os.joint(parent_directory, 'train_annotations')
+        annotation_path = os.path.join(parent_directory, 'train_annotations')
+        image_save_path = os.path.join(parent_directory, 'train\\train\\')
 
         annotation_data = []
         # Loop through each image, 
@@ -75,12 +72,10 @@ class AugmentationDataset(Dataset):
             image, bbox, label = data
 
             # apply the augmentation,
-            augmented_image_data = self.pre_resize_augment_transform(image=image, bboxes=[bbox], category_ids=[label])
+            augmented_image_data = augmentation_transform(image=image, bboxes=[bbox], category_ids=[label])
             image = augmented_image_data['image']        
             bbox_new = list(augmented_image_data['bboxes'][0])
 
-            # save in the augmentation folder
-            
 
             # append new annotations to list
             bbox_aug = [int(item) for item in bbox_new]
@@ -97,6 +92,14 @@ class AugmentationDataset(Dataset):
             }
             annotation_data.append(prediction_dict)
 
+            # save in the augmentation folder
+            if self.augmentation_previews > 0:
+                self.augmentation_previews -= 1
+                show(image, bbox_new, "Test")
+                # Convert back to Image
+                PIL_image = Image.fromarray(image)
+                PIL_image.save(os.path.join(image_save_path, self.image_names[idx]))
+
         # Export the annotations
         with open(annotation_path, "w") as file:
             json.dump(annotation_data, file)
@@ -104,16 +107,16 @@ class AugmentationDataset(Dataset):
 
 
 # Setup the training dataset
-train_path = "../Datasets/original_data/train/train"
-train_images = [os.path.join(train_path,file) for file in os.listdir(train_path)]
+original_train_path = "../Datasets/original_data/train/train"
 train_annotation = '../Datasets/original_data/train_annotations'
 
 train = pd.read_json(train_annotation)
-train.category_id = train['category_id'].apply(lambda x: 0 if x == 2 else 1)
-train['image_id'] = train_images
+train['image_filenames'] = os.listdir(original_train_path)
 train[['x','y','w','h']] = train['bbox'].apply(pd.Series)
 
-ds = AugmentationDataset(train)
+# Generate a static offline dataset
+ds = AugmentationDataset(train, original_train_path)
+ds.export_static_dataset(".\\Augmented Datasets\\augmented_ds_1\\", smallresnet_pre_resize)
 
 def preview_generative_inpainting(num_previews):
     """

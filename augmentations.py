@@ -166,7 +166,7 @@ def inpaint(image, mask):
     return inpainted_result
 
 
-def show(image, bbox, title, show=True, ax=None):
+def show(image, bbox, title):
     plt.gca().set_title(title)
     plt.imshow(image)
     if bbox is not None:
